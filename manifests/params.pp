@@ -1,34 +1,6 @@
-# Class: kubernetes
-# ===========================
+# == Class: kubernetes::params
 #
-# Class to orchestrate Kubernetes cluster
-#
-# Parameters
-# ----------
-#
-# [*manage_repo*]
-#   Manage apt repository configurations
-#   Defult: $kubernetes::params::manage_repo
-#
-# [*package_key_id*]
-#   Repository gpg key id
-#   Default: $kubernetes::params::package_key_id
-#
-# [*package_key_source*]
-#   Repository gpg key source
-#   Default: $kubernetes::params::package_key_source
-#
-# [*package_location*]
-#   Repository URL location
-#   Default: $kubernetes::params::package_location
-#
-# [*package_release*]
-#   Repository release
-#   Default: $kubernetes::params::package_release
-#
-# [*package_repos*]
-#   APT repositories
-#   Default: $kubernetes::params::package_repos
+# Default parameter values for kubernetes module
 #
 # Authors
 # -------
@@ -62,18 +34,11 @@
 #
 # Copyright 2017 Rhommel Lamas, unless otherwise noted.
 #
-class kubernetes (
-  $manage_repo        = $kubernetes::params::manage_repo,
-  $package_key_id     = $kubernetes::params::package_key_id,
-  $package_key_source = $kubernetes::params::package_key_source,
-  $package_location   = $kubernetes::params::package_location,
-  $package_release    = $kubernetes::params::package_release,
-  $package_repos      = $kubernetes::params::package_repos,
-) {
-
-  validate_bool($manage_repo)
-  validate_string($package_key_id)
-
-  class { 'kubernetes::repos': }
-  contain 'docker::repos'
+class kubernetes::params {
+  $manage_repo        = true
+  $package_key_id     = '7F438280EF8D349F'
+  $package_key_source = 'https://packages.cloud.google.com/apt/doc/apt-key.gpg'
+  $package_location   = 'http://apt.kubernetes.io'
+  $package_release    = "kubernetes-${::lsbdistcodename}"
+  $package_repos      = 'main'
 }

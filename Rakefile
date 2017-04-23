@@ -1,32 +1,75 @@
+require 'rubygems'
+require 'bundler/setup'
+
 require 'puppetlabs_spec_helper/rake_tasks'
-require 'puppet-lint/tasks/puppet-lint'
-require 'metadata-json-lint/rake_task'
 
-if RUBY_VERSION >= '1.9'
+# These gems aren't always present, for instance
+# on Travis with --without development
+begin
+  require 'puppet_blacksmith/rake_tasks'
+rescue LoadError # rubocop:disable Lint/HandleExceptions
+end
+
+begin
   require 'rubocop/rake_task'
-  RuboCop::RakeTask.new
+rescue LoadError # rubocop:disable Lint/HandleExceptions
 end
 
-PuppetLint.configuration.send('disable_80chars')
+begin
+  require 'puppet-strings/rake_tasks'
+rescue LoadError # rubocop:disable Lint/HandleExceptions
+end
+
 PuppetLint.configuration.relative = true
-PuppetLint.configuration.ignore_paths = ['spec/**/*.pp', 'pkg/**/*.pp']
+PuppetLint.configuration.disable_80chars
+PuppetLint.configuration.log_format = "%{path}:%{linenumber}:%{check}:%{KIND}:%{message}"
+PuppetLint.configuration.fail_on_warnings = true
 
-desc 'Validate manifests, templates, and ruby files'
-task :validate do
-  Dir['manifests/**/*.pp'].each do |manifest|
-    sh "puppet parser validate --noop #{manifest}"
+# Forsake support for Puppet 2.6.2 for the benefit of cleaner code.
+# http://puppet-lint.com/checks/class_parameter_defaults/
+PuppetLint.configuration.disable_class_parameter_defaults
+# http://puppet-lint.com/checks/class_inherits_from_params_class/
+PuppetLint.configuration.disable_class_inherits_from_params_class
+# To fix unquoted cases in spec/fixtures/modules/apt/manifests/key.pp
+PuppetLint.configuration.disable_unquoted_string_in_case
+
+exclude_paths = [
+  "pkg/**/*",
+  "vendor/**/*",
+  "spec/**/*",
+]
+PuppetLint.configuration.ignore_paths = exclude_paths
+PuppetSyntax.fail_on_deprecation_notices = false
+PuppetSyntax.exclude_paths = exclude_paths
+
+begin
+  require 'parallel_tests/cli'
+  desc 'Run spec tests in parallel'
+  task :parallel_spec do
+    Rake::Task[:spec_prep].invoke
+    ParallelTests::CLI.new.run('-o "--format=progress" -t rspec spec/classes spec/defines'.split)
+    Rake::Task[:spec_clean].invoke
   end
-  Dir['spec/**/*.rb', 'lib/**/*.rb'].each do |ruby_file|
-    sh "ruby -c #{ruby_file}" unless ruby_file =~ %r{spec/fixtures}
-  end
-  Dir['templates/**/*.erb'].each do |template|
-    sh "erb -P -x -T '-' #{template} | ruby -c"
-  end
+  desc 'Run syntax, lint, spec and metadata tests in parallel'
+  task :parallel_test => [
+    :syntax,
+    :lint,
+    :parallel_spec,
+    :metadata,
+  ]
+rescue LoadError # rubocop:disable Lint/HandleExceptions
 end
 
-desc 'Run metadata_lint, lint, validate, and spec tests.'
-task :test do
-  [:metadata_lint, :lint, :validate, :spec].each do |test|
-    Rake::Task[test].invoke
-  end
+# This fixes a backwards incompatibility in puppetlabs_spec_helper 1.1.0
+if Rake::Task.task_defined?('metadata_lint')
+  task :metadata => :metadata_lint
 end
+
+desc 'Run syntax, lint, spec and metadata tests'
+task :test => [
+  :syntax,
+  :lint,
+  :spec,
+  :metadata,
+]
+

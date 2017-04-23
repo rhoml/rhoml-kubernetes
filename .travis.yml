@@ -1,7 +1,32 @@
-language: bash
-install:
-  - wget http://ftp.debian.org/debian/pool/main/s/shellcheck/shellcheck_0.3.7-5_amd64.deb
-  - dpkg -x shellcheck_0.3.7-5_amd64.deb shellcheck/
-script:
-  - shellcheck/usr/bin/shellcheck script/*
+---
 sudo: false
+dist: trusty
+language: ruby
+cache: bundler
+bundler_args: --without system_tests development
+before_install:
+  - bundle -v
+  - rm Gemfile.lock || true
+  - gem update --system
+  - gem update bundler
+  - gem --version
+  - bundle -v
+script:
+  - 'bundle exec rake test'
+matrix:
+  fast_finish: true
+  include:
+  - rvm: 2.1.9
+    env: PUPPET_VERSION="~> 4.0"
+  - rvm: 2.2.6
+    env: PUPPET_VERSION="~> 4.0"
+  - rvm: 2.3.3
+    env: PUPPET_VERSION="~> 4.0"
+  - rvm: 2.4.0
+    env: PUPPET_VERSION="~> 4.0"
+branches:
+  only:
+  - master
+  - /^v\d/
+notifications:
+  email: false

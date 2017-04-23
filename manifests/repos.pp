@@ -1,34 +1,6 @@
-# Class: kubernetes
-# ===========================
+# = Class: kuberenetes::repos
 #
-# Class to orchestrate Kubernetes cluster
-#
-# Parameters
-# ----------
-#
-# [*manage_repo*]
-#   Manage apt repository configurations
-#   Defult: $kubernetes::params::manage_repo
-#
-# [*package_key_id*]
-#   Repository gpg key id
-#   Default: $kubernetes::params::package_key_id
-#
-# [*package_key_source*]
-#   Repository gpg key source
-#   Default: $kubernetes::params::package_key_source
-#
-# [*package_location*]
-#   Repository URL location
-#   Default: $kubernetes::params::package_location
-#
-# [*package_release*]
-#   Repository release
-#   Default: $kubernetes::params::package_release
-#
-# [*package_repos*]
-#   APT repositories
-#   Default: $kubernetes::params::package_repos
+# Class to manage apt repositories
 #
 # Authors
 # -------
@@ -62,18 +34,27 @@
 #
 # Copyright 2017 Rhommel Lamas, unless otherwise noted.
 #
-class kubernetes (
-  $manage_repo        = $kubernetes::params::manage_repo,
-  $package_key_id     = $kubernetes::params::package_key_id,
-  $package_key_source = $kubernetes::params::package_key_source,
-  $package_location   = $kubernetes::params::package_location,
-  $package_release    = $kubernetes::params::package_release,
-  $package_repos      = $kubernetes::params::package_repos,
-) {
+#
+class kubernetes::repos {
 
-  validate_bool($manage_repo)
-  validate_string($package_key_id)
+  if $kubernetes::manage_repo {
+    case $::osfamily {
+      'Debian': {
+        include apt
 
-  class { 'kubernetes::repos': }
-  contain 'docker::repos'
+        apt::source { 'kubernetes':
+          location => $kubernetes::package_location,
+          release  => $kubernetes::package_release,
+          repos    => $kubernetes::package_repos,
+          key      => {
+            id => $kuberenetes::package_key_id,
+            source => $kubernetes::package_key_source,
+          }
+        }
+
+        Exec['apt_update'] -> Apt::Source['kubernetes']
+      }
+      default: {}
+    }
+  }
 }
