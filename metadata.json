@@ -1,0 +1,15 @@
+{
+  "name": "rhoml-kubernetes",
+  "version": "0.1.0",
+  "author": "Rhommel Lamas",
+  "summary": "Puppet module to bootstrap & manage kubernetes cluster",
+  "license": "MIT",
+  "source": "https://github.com/rhoml/rhoml-kubernetes",
+  "project_page": "https://github.com/rhoml/rhoml-kubernetes",
+  "issues_url": "https://github.com/rhoml/rhoml-kubernetes/issues",
+  "dependencies": [
+    {"name":"puppetlabs-stdlib","version_requirement":">= 1.0.0"}
+  ],
+  "data_provider": null
+}
+
